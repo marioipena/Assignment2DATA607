@@ -1,0 +1,72 @@
+---
+title: "CUNY SPS - Master of Science in Data Science - DATA607 "
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Assignment 2: Database Connection With R
+# Mario Pena
+# 9/8/2019
+
+In this assignment I have chosen six of the most popular Hollywood movies, and I have asked 6 people to rate each of the movies they've seen on a scale from 1 (being terrible) to 5 (being great).
+
+I have stored the observations in a SQL database, so I will first need to load this data into an R dataframe.
+
+We'll need to load the following libraries:
+```{r}
+library(RMySQL)
+library(dbConnect)
+```
+```{r, echo=FALSE}
+options(database_password = 'test123*')
+```
+And connect to MySQL server:
+```{r}
+con = dbConnect (MySQL(), user = 'root', password = getOption('database_password'), dbname = 'movie_ratings', Host = 'localhost')
+```
+Now I can see a list of the tables in my "movie_ratings" database:
+```{r}
+dbListTables(con)
+```
+As you can see, I have created 3 different tables, each stores information regarding audience, movies and ratings.
+
+I will create 3 queries within R using these tables:
+```{r}
+myquery1 <- "select * from audience;"
+myquery2 <- "select * from movies;"
+myquery3 <- "select * from ratings;"
+```
+I will save them as dataframes in this next step and display their content:
+```{r}
+audience <- dbGetQuery(con, myquery1)
+audience
+movies <- dbGetQuery(con, myquery2)
+movies
+ratings <- dbGetQuery(con, myquery3)
+ratings
+```
+I will merge 'movies' and 'ratings' so we can have a clearer picture of how each movie was rated:
+```{r}
+movie_ratings <- merge(movies, ratings, by.x="movieid")
+movie_ratings
+```
+Let's take a look at what the summmary of this new table looks like:
+```{r}
+summary(movie_ratings)
+```
+We can see that the average rating for all the movies in this database is 4.212. This tells us these movies were very well received by the audience who watched them.
+
+Now let's see what is the average movie rating per movie:
+```{r}
+avg_movie_rating <- aggregate(x=movie_ratings["rating"], by = list(movie=movie_ratings$title), FUN = mean, na.rm=TRUE)
+avg_movie_rating
+```
+We can see that "The Lion King (Original)" has the highest average rating in this list, while "Jaws" has the lowest average rating as also shown in the barplot below:
+```{r}
+library(ggplot2)
+ggplot(aes(x = movie, y = rating), data = avg_movie_rating) + geom_bar(stat = "identity")
+```
